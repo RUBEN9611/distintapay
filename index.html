@@ -144,57 +144,42 @@
     </div>
 </div>
 
-<!-- DOCUMENTACIÓN: Importación de los módulos web oficiales de Firebase v9+ -->
+<!-- Módulos de Firebase -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { 
         getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc 
     } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-    // PANTALLA DE CONFIGURACIÓN: Reemplaza estos valores con las credenciales de tu consola Firebase
+    // DOCUMENTACIÓN: Credenciales reales integradas del proyecto DistintaPay
     const firebaseConfig = {
         apiKey: "AIzaSyAYeGb5fF4DZ0lEXbxaZElqv1R9-a_cmsQ",
-  authDomain: "distintapay.firebaseapp.com",
-  projectId: "distintapay",
-  storageBucket: "distintapay.firebasestorage.app",
-  messagingSenderId: "967537703357",
-  appId: "1:967537703357:web:063794ad2d22ffe33c3ad4",
-  measurementId: "G-2T3NXLGRMX"
+        authDomain: "distintapay.firebaseapp.com",
+        projectId: "distintapay",
+        storageBucket: "distintapay.firebasestorage.app",
+        messagingSenderId: "967537703357",
+        appId: "1:967537703357:web:063794ad2d22ffe33c3ad4",
+        measurementId: "G-2T3NXLGRMX"
     };
 
-    // Inicializamos las instancias globales de la aplicación y la base de datos de Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Arreglo local sincronizado dinámicamente con la nube
     let clientesBD = [];
     let clienteSeleccionadoIndex = null;
     let editando = false;
-
-    // Hacer las funciones accesibles desde las etiquetas HTML externas (Módulos JS)
-    window.registrarCliente = registrarCliente;
-    window.filtrarClientes = filtrarClientes;
-    window.seleccionarCliente = seleccionarCliente;
-    window.activarModoEdicion = activarModoEdicion;
-    window.eliminarClienteActual = eliminarClienteActual;
-    window.agregarPagoAClienteActual = agregarPagoAClienteActual;
-    window.mostrarBuscador = mostrarBuscador;
-    window.compartirPorWhatsApp = compartirPorWhatsApp;
-    window.simularVistaCliente = simularVistaCliente;
 
     function formatearDinero(cantidad) {
         return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(cantidad);
     }
 
-    // DOCUMENTACIÓN: Escucha en tiempo real los cambios de la colección en la nube
+    // Escucha de datos en la nube en tiempo real
     onSnapshot(collection(db, "clientes"), (snapshot) => {
         clientesBD = [];
         snapshot.forEach((doc) => {
-            // Guardamos los datos adjuntando el ID único del documento generado por Firebase
             clientesBD.push({ id: doc.id, ...doc.data() });
         });
         
-        // Si hay un cliente seleccionado en pantalla, refrescamos sus datos actualizados
         if (clienteSeleccionadoIndex !== null) {
             const idActual = document.getElementById("lblFolio").getAttribute("data-db-id");
             const nuevoIndex = clientesBD.findIndex(c => c.id === idActual);
@@ -210,7 +195,6 @@
         verificarPermisosAcceso();
     });
 
-    // DOCUMENTACIÓN: Escritura en la base de datos de la nube
     async function registrarCliente(event) {
         event.preventDefault();
         const folio = document.getElementById("regNumero").value;
@@ -289,7 +273,6 @@
             </div>`;
     }
 
-    // DOCUMENTACIÓN: Actualización parcial de los datos generales del cliente en la nube
     async function activarModoEdicion() {
         const cliente = clientesBD[clienteSeleccionadoIndex];
         const btn = document.getElementById("btnEditarCliente");
@@ -318,7 +301,6 @@
             const abonoNue = parseFloat(document.getElementById("editAbono").value) || 0;
 
             try {
-                // Instanciamos el documento exacto a través de su ID único
                 const clienteRef = doc(db, "clientes", cliente.id);
                 await updateDoc(clienteRef, {
                     nombre: nombreNue,
@@ -331,14 +313,12 @@
                 editando = false;
                 btn.innerText = "✏️ Editar Datos";
                 btn.classList.replace("btn-primary", "btn-warning");
-                alert("Datos actualizados en la nube.");
             } catch (error) {
                 console.error("Error al actualizar: ", error);
             }
         }
     }
 
-    // DOCUMENTACIÓN: Eliminación de documentos en la nube
     async function eliminarClienteActual() {
         const cliente = clientesBD[clienteSeleccionadoIndex];
         const confirmar = confirm(`¿Borrar permanentemente a ${cliente.nombre} de la nube?`);
@@ -347,7 +327,6 @@
                 await deleteDoc(doc(db, "clientes", cliente.id));
                 clienteSeleccionadoIndex = null;
                 mostrarBuscador();
-                alert("Cliente eliminado con éxito.");
             } catch (error) {
                 console.error("Error al eliminar: ", error);
             }
@@ -378,7 +357,6 @@
         });
     }
 
-    // DOCUMENTACIÓN: Actualiza el arreglo interno de historialPagos en la base de datos
     async function agregarPagoAClienteActual() {
         const cliente = clientesBD[clienteSeleccionadoIndex];
         const inputAbono = document.getElementById("inputAbono");
@@ -394,7 +372,6 @@
         const hoy = new Date();
         const fechaFormateada = String(hoy.getDate()).padStart(2, '0') + '/' + String(hoy.getMonth() + 1).padStart(2, '0');
 
-        // Generamos el nuevo historial sumando el abono entrante
         const nuevoHistorial = [...cliente.historialPagos, {
             abono: montoAbono,
             cargo: montoCargo,
@@ -434,6 +411,11 @@
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`, '_blank');
     }
 
+    function simularVistaCliente() {
+        document.getElementById("seccionAdmin").style.display = "none";
+        document.getElementById("controlesEdicionAdmin").style.display = "none";
+    }
+
     function verificarPermisosAcceso() {
         const parametros = new URLSearchParams(window.location.search);
         const modo = parametros.get("modo");
@@ -450,6 +432,17 @@
             }
         }
     }
+
+    // DOCUMENTACIÓN: Registro global al final para solventar el error inicial de orden de módulos
+    window.registrarCliente = registrarCliente;
+    window.filtrarClientes = filtrarClientes;
+    window.seleccionarCliente = seleccionarCliente;
+    window.activarModoEdicion = activarModoEdicion;
+    window.eliminarClienteActual = eliminarClienteActual;
+    window.agregarPagoAClienteActual = agregarPagoAClienteActual;
+    window.mostrarBuscador = mostrarBuscador;
+    window.compartirPorWhatsApp = compartirPorWhatsApp;
+    window.simularVistaCliente = simularVistaCliente;
 </script>
 
 </body>
