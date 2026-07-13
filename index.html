@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Créditos - DISTINTA.COM</title>
+    <!-- Bootstrap para garantizar diseño adaptativo en móviles y PC -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #eef2f7; font-family: sans-serif; }
+        .card-tarjeta-azul { border: 2px solid #0056b3; background-color: #e6f2ff; color: #111; }
+        .header-negocio { border-bottom: 2px solid #0056b3; padding-bottom: 10px; }
+        .logo-negocio { max-height: 85px; width: auto; object-fit: contain; }
+        .tabla-pagos th { background-color: #0056b3 !important; color: white; text-align: center; font-size: 0.85rem; }
+        .tabla-pagos td { text-align: center; vertical-align: middle; font-size: 0.85rem; background-color: #ffffff; }
+        .lista-clientes-item { cursor: pointer; transition: background 0.2s; }
+        .lista-clientes-item:hover { background-color: #d0e4ff; }
+    </style>
+</head>
+<body>
+
+<div class="container my-4">
+
+    <!-- VISTA 1: PANEL DE CONTROL (BÚSQUEDA Y REGISTRO) -->
+    <div id="vistaBusqueda" class="row g-4">
+        <div class="col-md-5">
+            <div class="card p-4 shadow-sm h-100">
+                <h4 class="fw-bold text-primary mb-3">➕ Registrar Nuevo Cliente</h4>
+                <form id="formNuevoCliente" onsubmit="registrarCliente(event)">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Número de Cliente / Folio</label>
+                        <input type="text" id="regNumero" class="form-control" placeholder="Ej: 123-D" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Nombre Completo</label>
+                        <input type="text" id="regNombre" class="form-control" placeholder="Nombre del cliente" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Dirección (Calle y Colonia)</label>
+                        <input type="text" id="regDireccion" class="form-control" placeholder="Av. Principal #123" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Artículo / Servicio</label>
+                        <input type="text" id="regArticulo" class="form-control" placeholder="Ej: Celular / Préstamo" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Precio ($)</label>
+                            <input type="number" id="regPrecio" class="form-control" placeholder="0.00" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Abono Semanal ($)</label>
+                            <input type="number" id="regAbono" class="form-control" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">Guardar en Base de Datos</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card p-4 shadow-sm h-100">
+                <h3 class="fw-bold text-dark mb-1">DISTINTA.COM</h3>
+                <p class="text-muted small">Servicio a Domicilio Premium</p>
+                <div class="mb-3">
+                    <input type="text" id="inputBuscar" class="form-control form-control-lg" placeholder="🔍 Buscar por Número de Cliente o Nombre..." oninput="filtrarClientes()">
+                </div>
+                <h5 class="fw-bold mt-4">Lista de Cuentas Activas</h5>
+                <div class="list-group shadow-sm overflow-auto" style="max-height: 350px;" id="listaClientesContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA 2: DETALLE DE LA TARJETA DIGITAL -->
+    <div id="vistaTarjeta" class="card card-tarjeta azul p-4 shadow-sm d-none card-tarjeta-azul">
+        
+        <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div id="controlesNavegacion">
+                <button class="btn btn-dark btn-sm me-2" id="btnVolver" onclick="mostrarBuscador()">⬅ Volver al Panel</button>
+                <button class="btn btn-success btn-sm fw-bold text-white me-2" id="btnWhatsApp" onclick="compartirPorWhatsApp()">💬 Enviar por WhatsApp</button>
+            </div>
+            <div id="controlesEdicionAdmin">
+                <button class="btn btn-warning btn-sm fw-bold me-2 text-dark" id="btnEditarCliente" onclick="activarModoEdicion()">✏️ Editar Datos</button>
+                <button class="btn btn-danger btn-sm fw-bold" onclick="eliminarClienteActual()">🗑️ Eliminar Cliente</button>
+            </div>
+        </div>
+
+        <div class="row header-negocio align-items-center mb-3">
+            <div class="col-8 d-flex align-items-center">
+                <img src="distintacreditosconfondo.png" alt="Distinta.com Logo" class="logo-negocio me-3" onerror="this.style.opacity='0.5'">
+                <div>
+                    <h2 class="fw-bold mb-0">DISTINTA.COM</h2>
+                    <small class="fw-bold text-secondary">Servicio a Domicilio Premium</small>
+                </div>
+            </div>
+            <div class="col-4 text-end">
+                <span class="badge bg-primary fs-5">N° <span id="lblFolio">000</span></span>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4" id="contenedorDatosCliente">
+            <div class="col-md-6">
+                <p class="mb-1"><strong>NOMBRE:</strong> <span id="lblNombre">-</span></p>
+                <p class="mb-1"><strong>DIRECCIÓN:</strong> <span id="lblDireccion">-</span></p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <p class="mb-1"><strong>ARTÍCULO:</strong> <span id="lblArticulo">-</span></p>
+                <p class="mb-1"><strong>PRECIO:</strong> <span id="lblPrecio">$0.00</span></p>
+                <p class="mb-1"><strong>IMPORTE SEMANAL:</strong> <span id="lblAbonoSemanal">$0.00</span></p>
+            </div>
+        </div>
+
+        <div id="seccionAdmin" class="card p-3 mb-4 bg-light border-0 shadow-sm text-dark">
+            <h6 class="fw-bold mb-2">Capturar Pago Semanal</h6>
+            <div class="row g-2">
+                <div class="col-6 col-sm-4">
+                    <input type="number" id="inputAbono" class="form-control" placeholder="Monto del Abono" required>
+                </div>
+                <div class="col-6 col-sm-4">
+                    <input type="number" id="inputCargo" class="form-control" placeholder="Cargo por Atraso ($)" value="0">
+                </div>
+                <div class="col-12 col-sm-4">
+                    <button class="btn btn-success w-100 fw-bold" onclick="agregarPagoAClienteActual()">Registrar Pago</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped tabla-pagos">
+                <thead>
+                    <tr>
+                        <th>SEMANA/FIRMA</th>
+                        <th>ABONO</th>
+                        <th>PAGADO</th>
+                        <th>CARGO</th>
+                        <th>SALDO</th>
+                        <th>FECHA</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpoTablaPagos"></tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<!-- DOCUMENTACIÓN: Importación de los módulos web oficiales de Firebase v9+ -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+    import { 
+        getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc 
+    } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+
+    // PANTALLA DE CONFIGURACIÓN: Reemplaza estos valores con las credenciales de tu consola Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyAYeGb5fF4DZ0lEXbxaZElqv1R9-a_cmsQ",
+  authDomain: "distintapay.firebaseapp.com",
+  projectId: "distintapay",
+  storageBucket: "distintapay.firebasestorage.app",
+  messagingSenderId: "967537703357",
+  appId: "1:967537703357:web:063794ad2d22ffe33c3ad4",
+  measurementId: "G-2T3NXLGRMX"
+    };
+
+    // Inicializamos las instancias globales de la aplicación y la base de datos de Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Arreglo local sincronizado dinámicamente con la nube
+    let clientesBD = [];
+    let clienteSeleccionadoIndex = null;
+    let editando = false;
+
+    // Hacer las funciones accesibles desde las etiquetas HTML externas (Módulos JS)
+    window.registrarCliente = registrarCliente;
+    window.filtrarClientes = filtrarClientes;
+    window.seleccionarCliente = seleccionarCliente;
+    window.activarModoEdicion = activarModoEdicion;
+    window.eliminarClienteActual = eliminarClienteActual;
+    window.agregarPagoAClienteActual = agregarPagoAClienteActual;
+    window.mostrarBuscador = mostrarBuscador;
+    window.compartirPorWhatsApp = compartirPorWhatsApp;
+    window.simularVistaCliente = simularVistaCliente;
+
+    function formatearDinero(cantidad) {
+        return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(cantidad);
+    }
+
+    // DOCUMENTACIÓN: Escucha en tiempo real los cambios de la colección en la nube
+    onSnapshot(collection(db, "clientes"), (snapshot) => {
+        clientesBD = [];
+        snapshot.forEach((doc) => {
+            // Guardamos los datos adjuntando el ID único del documento generado por Firebase
+            clientesBD.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // Si hay un cliente seleccionado en pantalla, refrescamos sus datos actualizados
+        if (clienteSeleccionadoIndex !== null) {
+            const idActual = document.getElementById("lblFolio").getAttribute("data-db-id");
+            const nuevoIndex = clientesBD.findIndex(c => c.id === idActual);
+            if (nuevoIndex !== -1) {
+                clienteSeleccionadoIndex = nuevoIndex;
+                const cliente = clientesBD[clienteSeleccionadoIndex];
+                if (!editando) restaurarVistaDatosFijos(cliente);
+                renderizarHistorialCliente(cliente);
+            }
+        }
+        
+        filtrarClientes();
+        verificarPermisosAcceso();
+    });
+
+    // DOCUMENTACIÓN: Escritura en la base de datos de la nube
+    async function registrarCliente(event) {
+        event.preventDefault();
+        const folio = document.getElementById("regNumero").value;
+        const nombre = document.getElementById("regNombre").value;
+        const direccion = document.getElementById("regDireccion").value;
+        const articulo = document.getElementById("regArticulo").value;
+        const precio = parseFloat(document.getElementById("regPrecio").value);
+        const abonoSemanal = parseFloat(document.getElementById("regAbono").value);
+
+        try {
+            await addDoc(collection(db, "clientes"), {
+                folio: folio,
+                nombre: nombre,
+                direccion: direccion,
+                articulo: articulo,
+                precio: precio,
+                abonoSemanal: abonoSemanal,
+                historialPagos: []
+            });
+            document.getElementById("formNuevoCliente").reset();
+            alert("Cliente guardado en la nube con éxito.");
+        } catch (error) {
+            console.error("Error al guardar: ", error);
+        }
+    }
+
+    function filtrarClientes() {
+        const query = document.getElementById("inputBuscar").value.toLowerCase();
+        const container = document.getElementById("listaClientesContainer");
+        container.innerHTML = "";
+
+        clientesBD.forEach((cliente, index) => {
+            if (cliente.nombre.toLowerCase().includes(query) || cliente.folio.toLowerCase().includes(query)) {
+                let totalPagado = cliente.historialPagos.reduce((sum, p) => sum + p.abono, 0);
+                let totalCargos = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
+                let saldoActual = cliente.precio + totalCargos - totalPagado;
+
+                let item = `<div class="list-group-item list-group-item-action lista-clientes-item d-flex justify-content-between align-items-center" onclick="seleccionarCliente(${index})">
+                    <div>
+                        <span class="badge bg-primary me-2">N° ${cliente.folio}</span>
+                        <strong>${cliente.nombre}</strong>
+                        <br><small class="text-muted">${cliente.articulo}</small>
+                    </div>
+                    <span class="badge bg-danger">Saldo: ${formatearDinero(saldoActual)}</span>
+                </div>`;
+                container.innerHTML += item;
+            }
+        });
+    }
+
+    function seleccionarCliente(index) {
+        clienteSeleccionadoIndex = index;
+        editando = false;
+        const cliente = clientesBD[index];
+
+        document.getElementById("lblFolio").innerText = cliente.folio;
+        document.getElementById("lblFolio").setAttribute("data-db-id", cliente.id);
+        restaurarVistaDatosFijos(cliente);
+        renderizarHistorialCliente(cliente);
+
+        document.getElementById("vistaBusqueda").classList.add("d-none");
+        document.getElementById("vistaTarjeta").classList.remove("d-none");
+    }
+
+    function restaurarVistaDatosFijos(cliente) {
+        const contenedor = document.getElementById("contenedorDatosCliente");
+        contenedor.innerHTML = `
+            <div class="col-md-6">
+                <p class="mb-1"><strong>NOMBRE:</strong> <span id="lblNombre">${cliente.nombre}</span></p>
+                <p class="mb-1"><strong>DIRECCIÓN:</strong> <span id="lblDireccion">${cliente.direccion}</span></p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <p class="mb-1"><strong>ARTÍCULO:</strong> <span id="lblArticulo">${cliente.articulo}</span></p>
+                <p class="mb-1"><strong>PRECIO:</strong> <span id="lblPrecio">${formatearDinero(cliente.precio)}</span></p>
+                <p class="mb-1"><strong>IMPORTE SEMANAL:</strong> <span id="lblAbonoSemanal">${formatearDinero(cliente.abonoSemanal)}</span></p>
+            </div>`;
+    }
+
+    // DOCUMENTACIÓN: Actualización parcial de los datos generales del cliente en la nube
+    async function activarModoEdicion() {
+        const cliente = clientesBD[clienteSeleccionadoIndex];
+        const btn = document.getElementById("btnEditarCliente");
+
+        if (!editando) {
+            editando = true;
+            btn.innerText = "💾 Guardar Cambios";
+            btn.classList.replace("btn-warning", "btn-primary");
+
+            const contenedor = document.getElementById("contenedorDatosCliente");
+            contenedor.innerHTML = `
+                <div class="col-md-6">
+                    <div class="mb-2"><strong>NOMBRE:</strong><input type="text" id="editNombre" class="form-control form-control-sm" value="${cliente.nombre}"></div>
+                    <div class="mb-2"><strong>DIRECCIÓN:</strong><input type="text" id="editDireccion" class="form-control form-control-sm" value="${cliente.direccion}"></div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-2"><strong>ARTÍCULO:</strong><input type="text" id="editArticulo" class="form-control form-control-sm" value="${cliente.articulo}"></div>
+                    <div class="mb-2"><strong>PRECIO ($):</strong><input type="number" id="editPrecio" class="form-control form-control-sm" value="${cliente.precio}"></div>
+                    <div class="mb-2"><strong>IMPORTE SEMANAL ($):</strong><input type="number" id="editAbono" class="form-control form-control-sm" value="${cliente.abonoSemanal}"></div>
+                </div>`;
+        } else {
+            const nombreNue = document.getElementById("editNombre").value;
+            const direccionNue = document.getElementById("editDireccion").value;
+            const articuloNue = document.getElementById("editArticulo").value;
+            const precioNue = parseFloat(document.getElementById("editPrecio").value) || 0;
+            const abonoNue = parseFloat(document.getElementById("editAbono").value) || 0;
+
+            try {
+                // Instanciamos el documento exacto a través de su ID único
+                const clienteRef = doc(db, "clientes", cliente.id);
+                await updateDoc(clienteRef, {
+                    nombre: nombreNue,
+                    direccion: direccionNue,
+                    articulo: articuloNue,
+                    precio: precioNue,
+                    abonoSemanal: abonoNue
+                });
+
+                editando = false;
+                btn.innerText = "✏️ Editar Datos";
+                btn.classList.replace("btn-primary", "btn-warning");
+                alert("Datos actualizados en la nube.");
+            } catch (error) {
+                console.error("Error al actualizar: ", error);
+            }
+        }
+    }
+
+    // DOCUMENTACIÓN: Eliminación de documentos en la nube
+    async function eliminarClienteActual() {
+        const cliente = clientesBD[clienteSeleccionadoIndex];
+        const confirmar = confirm(`¿Borrar permanentemente a ${cliente.nombre} de la nube?`);
+        if (confirmar) {
+            try {
+                await deleteDoc(doc(db, "clientes", cliente.id));
+                clienteSeleccionadoIndex = null;
+                mostrarBuscador();
+                alert("Cliente eliminado con éxito.");
+            } catch (error) {
+                console.error("Error al eliminar: ", error);
+            }
+        }
+    }
+
+    function renderizarHistorialCliente(cliente) {
+        const tabla = document.getElementById("cuerpoTablaPagos");
+        tabla.innerHTML = ""; 
+
+        let acumuladoPagado = 0;
+        let saldoCalculado = cliente.precio;
+
+        cliente.historialPagos.forEach((pago, i) => {
+            acumuladoPagado += pago.abono;
+            saldoCalculado = saldoCalculado - pago.abono + pago.cargo;
+
+            let numSemana = String(i + 1).padStart(2, '0');
+            let fila = `<tr>
+                <td><strong>${numSemana}</strong></td>
+                <td>${formatearDinero(pago.abono)}</td>
+                <td>${formatearDinero(acumuladoPagado)}</td>
+                <td>${formatearDinero(pago.cargo)}</td>
+                <td class="text-danger fw-bold">${formatearDinero(saldoCalculado)}</td>
+                <td>${pago.fecha}</td>
+            </tr>`;
+            tabla.innerHTML += fila;
+        });
+    }
+
+    // DOCUMENTACIÓN: Actualiza el arreglo interno de historialPagos en la base de datos
+    async function agregarPagoAClienteActual() {
+        const cliente = clientesBD[clienteSeleccionadoIndex];
+        const inputAbono = document.getElementById("inputAbono");
+        const inputCargo = document.getElementById("inputCargo");
+        const montoAbono = parseFloat(inputAbono.value);
+        const montoCargo = parseFloat(inputCargo.value) || 0;
+        
+        if (isNaN(montoAbono) || montoAbono <= 0) {
+            alert("Monto no válido.");
+            return;
+        }
+
+        const hoy = new Date();
+        const fechaFormateada = String(hoy.getDate()).padStart(2, '0') + '/' + String(hoy.getMonth() + 1).padStart(2, '0');
+
+        // Generamos el nuevo historial sumando el abono entrante
+        const nuevoHistorial = [...cliente.historialPagos, {
+            abono: montoAbono,
+            cargo: montoCargo,
+            fecha: fechaFormateada
+        }];
+
+        try {
+            const clienteRef = doc(db, "clientes", cliente.id);
+            await updateDoc(clienteRef, { historialPagos: nuevoHistorial });
+            inputAbono.value = "";
+            inputCargo.value = "0";
+        } catch (error) {
+            console.error("Error al registrar pago: ", error);
+        }
+    }
+
+    function mostrarBuscador() {
+        document.getElementById("vistaTarjeta").classList.add("d-none");
+        document.getElementById("vistaBusqueda").classList.remove("d-none");
+    }
+
+    function compartirPorWhatsApp() {
+        const cliente = clientesBD[clienteSeleccionadoIndex];
+        let totalPagado = cliente.historialPagos.reduce((sum, p) => sum + p.abono, 0);
+        let totalCargos = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
+        let saldoActual = cliente.precio + totalCargos - totalPagado;
+
+        const urlActual = window.location.href.split('?')[0];
+        const enlaceCliente = `${urlActual}?folio=${cliente.folio}&modo=cliente`;
+
+        const mensaje = `Hola *${cliente.nombre}*, te compartimos tu estado de cuenta en DISTINTA.COM.\n\n` +
+                        `🔹 *Crédito N°:* ${cliente.folio}\n` +
+                        `🔹 *Artículo:* ${cliente.articulo}\n` +
+                        `🔹 *Saldo Restante:* ${formatearDinero(saldoActual)}\n\n` +
+                        `Revisa tu historial aquí: ${enlaceCliente}`;
+
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`, '_blank');
+    }
+
+    function verificarPermisosAcceso() {
+        const parametros = new URLSearchParams(window.location.search);
+        const modo = parametros.get("modo");
+        const folioBuscado = parametros.get("folio");
+
+        if (modo === "cliente" && folioBuscado && clientesBD.length > 0) {
+            const index = clientesBD.findIndex(c => c.folio === folioBuscado);
+            if (index !== -1) {
+                seleccionarCliente(index);
+                document.getElementById("seccionAdmin").style.display = "none";
+                document.getElementById("controlesEdicionAdmin").style.display = "none";
+                document.getElementById("btnVolver").style.display = "none";
+                document.getElementById("btnWhatsApp").style.display = "none";
+            }
+        }
+    }
+</script>
+
+</body>
+</html>
