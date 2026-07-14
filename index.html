@@ -311,28 +311,33 @@
     }
 
     function filtrarClientes() {
-        const query = document.getElementById("inputBuscar").value.toLowerCase();
-        const container = document.getElementById("listaClientesContainer");
-        container.innerHTML = "";
+    const query = document.getElementById("inputBuscar").value.toLowerCase();
+    const container = document.getElementById("listClientesContainer");
+    container.innerHTML = "";
 
-        clientesBD.forEach((cliente, index) => {
-            if (cliente.nombre.toLowerCase().includes(query) || cliente.folio.toLowerCase().includes(query)) {
-                let totalPagado = cliente.historialPagos.reduce((sum, p) => sum + p.abono, 0);
-                let totalCargos = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
-                let saldoActual = cliente.precio + totalCargos - totalPagado;
+    clientesBD.forEach((cliente, index) => {
+        if (cliente.nombre.toLowerCase().includes(query) || cliente.folio.toLowerCase().includes(query)) {
+            let totalPagado = cliente.historialPagos.reduce((sum, p) => sum + p.abono, 0);
+            let totalCargos = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
+            let saldoActual = cliente.precio + totalCargos - totalPagado;
 
-                let item = `<div class="list-group-item list-group-item-action lista-clientes-item d-flex justify-content-between align-items-center" onclick="seleccionarCliente(${index})">
-                    <div>
-                        <span class="badge bg-primary me-2">N° ${cliente.folio}</span>
-                        <strong>${cliente.nombre}</strong>
-                        <br><small class="text-muted">${cliente.articulo} (${cliente.zona || 'Sin Zona'} - Cobro: ${cliente.diaCobro || 'Sin asignar'})</small>
-                    </div>
-                    <span class="badge bg-danger">Saldo: ${formatearDinero(saldoActual)}</span>
-                </div>`;
-                container.innerHTML += item;
-            }
-        });
-    }
+            // DOCUMENTACIÓN: Declaración previa y segura de variables locales con valores de respaldo
+            // para evitar errores de tipo 'undefined' al procesar registros antiguos.
+            let zonaAsignada = cliente.zona || 'Local';
+            let diaCobroAsignado = cliente.diaCobro || 'Sin asignar';
+
+            let item = `<div class="list-group-item list-group-item-action lista-clientes-item d-flex justify-content-between align-items-center" onclick="seleccionarCliente(${index})">
+                <div>
+                    <span class="badge bg-primary me-2">N° ${cliente.folio}</span>
+                    <strong>${cliente.nombre}</strong>
+                    <br><small class="text-muted">${cliente.articulo} (${zonaAsignada} - Cobro: ${diaCobroAsignado})</small>
+                </div>
+                <span class="badge bg-danger">Saldo: ${formatearDinero(saldoActual)}</span>
+            </div>`;
+            container.innerHTML += item;
+        }
+    });
+}
 
     function parsearFechaTexto(fechaTexto) {
         const partes = fechaTexto.split("/");
