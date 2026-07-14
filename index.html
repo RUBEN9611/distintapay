@@ -40,13 +40,29 @@
                         <label class="form-label small fw-bold">Dirección (Calle y Colonia)</label>
                         <input type="text" id="regDireccion" class="form-control" placeholder="Av. Principal #123" required>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label small fw-bold">Zona</label>
-                        <select id="regZona" class="form-select" required>
-                            <option value="" disabled selected>Selecciona la zona...</option>
-                            <option value="Local">Local</option>
-                            <option value="Foránea">Foránea</option>
-                        </select>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Zona</label>
+                            <select id="regZona" class="form-select" required>
+                                <option value="" disabled selected>Selecciona...</option>
+                                <option value="Local">Local</option>
+                                <option value="Foránea">Foránea</option>
+                            </select>
+                        </div>
+                        <!-- DOCUMENTACIÓN: Selección obligatoria del día de cobro adaptado al ciclo laboral -->
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Día de Cobro</label>
+                            <select id="regDiaCobro" class="form-select" required>
+                                <option value="" disabled selected>Día...</option>
+                                <option value="Viernes">Viernes</option>
+                                <option value="Sábado">Sábado</option>
+                                <option value="Domingo">Domingo</option>
+                                <option value="Lunes">Lunes</option>
+                                <option value="Martes">Martes</option>
+                                <option value="Miércoles">Miércoles</option>
+                                <option value="Jueves">Jueves</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="mb-2">
                         <label class="form-label small fw-bold">Artículo / Servicio</label>
@@ -79,11 +95,11 @@
             </div>
         </div>
 
-        <!-- Nueva sección de Consultas y Reportes de Rango de Fechas -->
+        <!-- PANEL DE REPORTES FINANCIEROS Y AUDITORÍA DE IMPAGOS -->
         <div class="col-12 mt-4">
             <div class="seccion-reporte p-4 shadow-sm">
                 <h4 class="fw-bold text-dark mb-3">📊 Panel de Consultas y Reportes Financieros</h4>
-                <div class="row g-3 align-items-end mb-4">
+                <div class="row g-3 align-items-end mb-4 border-bottom pb-4">
                     <div class="col-6 col-md-3">
                         <label class="form-label small fw-bold">Fecha Inicial</label>
                         <input type="date" id="repFechaInicio" class="form-control">
@@ -100,20 +116,25 @@
                     </div>
                 </div>
 
-                <h5 class="fw-bold text-secondary" id="tituloTablaReporte">Resultados de la Consulta</h5>
+                <!-- DOCUMENTACIÓN: Botón de ejecución para la auditoría de impagos semanales -->
+                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                    <h5 class="fw-bold text-secondary mb-0" id="tituloTablaReporte">Resultados de la Consulta</h5>
+                    <button class="btn btn-warning btn-sm fw-bold text-dark shadow-sm" onclick="consultarClientesSinPagoEstaSemana()">🚨 Detectar Impagos Semanales</button>
+                </div>
+
                 <div class="table-responsive mt-2">
-                    <table class="table table-bordered table-striped text-center">
+                    <table class="table table-bordered table-striped text-center align-middle">
                         <thead class="table-dark">
                             <tr>
                                 <th>N° CLIENTE / FOLIO</th>
                                 <th>NOMBRE</th>
                                 <th id="columnaDinamicaMonto">IMPORTE</th>
-                                <th>FECHA</th>
+                                <th>FECHA / ACCIÓN</th>
                             </tr>
                         </thead>
                         <tbody id="cuerpoTablaReporte">
                             <tr>
-                                <td colspan="4" class="text-muted small">Selecciona un rango de fechas y ejecuta una consulta.</td>
+                                <td colspan="4" class="text-muted small">Selecciona un rango de fechas o ejecuta la detección de impagos semanales.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -156,6 +177,7 @@
                 <p class="mb-1"><strong>NOMBRE:</strong> <span id="lblNombre">-</span></p>
                 <p class="mb-1"><strong>DIRECCIÓN:</strong> <span id="lblDireccion">-</span></p>
                 <p class="mb-1"><strong>ZONA:</strong> <span id="lblZona">-</span></p>
+                <p class="mb-1"><strong>DÍA DE COBRO:</strong> <span id="lblDiaCobro">-</span></p>
             </div>
             <div class="col-md-6 text-md-end">
                 <p class="mb-1"><strong>ARTÍCULO:</strong> <span id="lblArticulo">-</span></p>
@@ -227,6 +249,10 @@
     let clienteSeleccionadoIndex = null;
     let editando = false;
 
+    // Constantes de mapeo cronológico laboral (Viernes a Jueves)
+    const ORDEN_LABORAL = { "Viernes": 0, "Sábado": 1, "Domingo": 2, "Lunes": 3, "Martes": 4, "Miércoles": 5, "Jueves": 6 };
+    const MAPEO_NATIVO_A_LABORAL = { 5: 0, 6: 1, 0: 2, 1: 3, 2: 4, 3: 5, 4: 6 };
+
     function formatearDinero(cantidad) {
         return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(cantidad);
     }
@@ -257,6 +283,7 @@
         const nombre = document.getElementById("regNombre").value;
         const direccion = document.getElementById("regDireccion").value;
         const zona = document.getElementById("regZona").value;
+        const diaCobro = document.getElementById("regDiaCobro").value;
         const articulo = document.getElementById("regArticulo").value;
         const precio = parseFloat(document.getElementById("regPrecio").value);
         const abonoSemanal = parseFloat(document.getElementById("regAbono").value);
@@ -267,6 +294,7 @@
                 nombre: nombre,
                 direccion: direccion,
                 zona: zona,
+                diaCobro: diaCobro,
                 articulo: articulo,
                 precio: precio,
                 abonoSemanal: abonoSemanal,
@@ -279,13 +307,11 @@
         }
     }
 
-    // DOCUMENTACIÓN: Ajuste de ID del contenedor de "list" a "lista" e inicialización defensiva de variables
     function filtrarClientes() {
         const query = document.getElementById("inputBuscar").value.toLowerCase();
-        // CORRECCIÓN: Se utiliza "listaClientesContainer" (con la 'a') para coincidir exactamente con el HTML
         const container = document.getElementById("listaClientesContainer");
         
-        if (!container) return; // Validación de protección para que no se detenga el código
+        if (!container) return;
         container.innerHTML = "";
 
         clientesBD.forEach((cliente, index) => {
@@ -294,14 +320,14 @@
                 let totalCargos = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
                 let saldoActual = cliente.precio + totalCargos - totalPagado;
 
-                // CORRECCIÓN: Operador de respaldo para proteger registros antiguos
                 let zonaAsignada = cliente.zona || 'Local';
+                let diaCobroAsignado = cliente.diaCobro || 'Sin asignar';
 
                 let item = `<div class="list-group-item list-group-item-action lista-clientes-item d-flex justify-content-between align-items-center" onclick="seleccionarCliente(${index})">
                     <div>
                         <span class="badge bg-primary me-2">N° ${cliente.folio}</span>
                         <strong>${cliente.nombre}</strong>
-                        <br><small class="text-muted">${cliente.articulo} (${zonaAsignada})</small>
+                        <br><small class="text-muted">${cliente.articulo} (${zonaAsignada} - Cobro: ${diaCobroAsignado})</small>
                     </div>
                     <span class="badge bg-danger">Saldo: ${formatearDinero(saldoActual)}</span>
                 </div>`;
@@ -310,15 +336,13 @@
         });
     }
 
-    // DOCUMENTACIÓN: Convertidor de formato texto "DD/MM" a un objeto fecha real utilizable
     function parsearFechaTexto(fechaTexto) {
         const partes = fechaTexto.split("/");
         const dia = parseInt(partes[0], 10);
         const mes = parseInt(partes[1], 10) - 1; 
-        return new Date(2026, mes, dia); // Fija el contexto cronológico al año 2026
+        return new Date(2026, mes, dia);
     }
 
-    // DOCUMENTACIÓN: Nueva función para filtrar los pagos capturados reales
     function consultarPagosRealizados() {
         const inicioStr = document.getElementById("repFechaInicio").value;
         const finStr = document.getElementById("repFechaFin").value;
@@ -335,6 +359,7 @@
         let acumuladoTotal = 0;
 
         document.getElementById("columnaDinamicaMonto").innerText = "IMPORTE ABONADO";
+        document.getElementById("tituloTablaReporte").innerText = "Resultados: Pagos Realizados";
 
         clientesBD.forEach(cliente => {
             cliente.historialPagos.forEach(pago => {
@@ -358,7 +383,6 @@
         document.getElementById("lblTotalReporte").innerText = formatearDinero(acumuladoTotal);
     }
 
-    // DOCUMENTACIÓN: Nueva función para analizar y listar los retrasos monetarios acumulados en el lapso
     function consultarRetrasosPendientes() {
         const inicioStr = document.getElementById("repFechaInicio").value;
         const finStr = document.getElementById("repFechaFin").value;
@@ -375,8 +399,8 @@
         let acumuladoRetrasos = 0;
 
         document.getElementById("columnaDinamicaMonto").innerText = "RETRASO ACUMULADO";
+        document.getElementById("tituloTablaReporte").innerText = "Resultados: Retrasos Vencidos";
 
-        // Calcula la cantidad de semanas completas que abarca el rango de consulta
         const milisegundosPorSemana = 1000 * 60 * 60 * 24 * 7;
         let semanasPeriodo = Math.ceil((fechaFin - fechaInicio) / milisegundosPorSemana);
         if (semanasPeriodo <= 0) semanasPeriodo = 1;
@@ -386,25 +410,17 @@
             let totalCargos = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
             let saldoGlobal = cliente.precio + totalCargos - totalPagado;
 
-            // Solo analiza clientes activos con deuda pendiente
             if (saldoGlobal > 0) {
-                // Suma lo abonado por el cliente exclusivamente dentro del lapso consultado
                 let pagadoEnPeriodo = 0;
                 cliente.historialPagos.forEach(pago => {
                     const fPago = parsearFechaTexto(pago.fecha);
-                    if (fPago >= fechaInicio && fPago <= fechaFin) {
-                        pagadoEnPeriodo += pago.abono;
-                    }
+                    if (fPago >= fechaInicio && fPago <= fechaFin) pagadoEnPeriodo += pago.abono;
                 });
 
-                // Lo que debió ingresar contractualmente en ese número de semanas
                 let esperadoEnPeriodo = cliente.abonoSemanal * semanasPeriodo;
                 
-                // Si pagó menos de lo esperado, existe rezago acumulado
                 if (pagadoEnPeriodo < esperadoEnPeriodo) {
                     let retraso = esperadoEnPeriodo - pagadoEnPeriodo;
-                    
-                    // El retraso mostrado no puede exceder el saldo total que el cliente debe actualmente
                     if (retraso > saldoGlobal) retraso = saldoGlobal;
 
                     acumuladoRetrasos += retraso;
@@ -420,9 +436,76 @@
         });
 
         if (cuerpo.innerHTML === "") {
-            cuerpo.innerHTML = `<tr><td colspan="4" class="text-muted">Ningún cliente presenta retrasos en este periodo.</td></tr>`;
+            cuerpo.innerHTML = `<tr><td colspan="4" class="text-muted">Ningún cliente presenta retrasos.</td></tr>`;
         }
-        document.getElementById("lblTotalReporte").innerText = formatearDinero(acumuladoRetrasos);
+        document.getElementById("lblTotalReporte").innerText = formatting toolkit (formatearDinero(acumuladoRetrasos));
+    }
+
+    // DOCUMENTACIÓN: Algoritmo de detección de impagos configurado en base al ciclo Viernes-Jueves
+    function consultarClientesSinPagoEstaSemana() {
+        const cuerpo = document.getElementById("cuerpoTablaReporte");
+        cuerpo.innerHTML = "";
+        document.getElementById("columnaDinamicaMonto").innerText = "CUOTA PENDIENTE";
+        document.getElementById("tituloTablaReporte").innerText = "Resultados: Impagos de la Semana Actual";
+        
+        const hoy = new Date();
+        const diaSemanaNativo = hoy.getDay();
+        const indiceLaboralHoy = MAPEO_NATIVO_A_LABORAL[diaSemanaNativo];
+
+        let diasDesdeViernes = diaSemanaNativo >= 5 ? diaSemanaNativo - 5 : diaSemanaNativo + 2;
+        let fechaViernesInicio = new Date(hoy);
+        fechaViernesInicio.setDate(hoy.getDate() - diasDesdeViernes);
+        fechaViernesInicio.setHours(0, 0, 0, 0);
+
+        let fechaJuevesFin = new Date(fechaViernesInicio);
+        fechaJuevesFin.setDate(fechaViernesInicio.getDate() + 6);
+        fechaJuevesFin.setHours(23, 59, 59, 999);
+
+        let acumuladoTotalPendiente = 0;
+
+        clientesBD.forEach(cliente => {
+            if (!cliente.diaCobro) return;
+
+            const indiceLaboralCliente = ORDEN_LABORAL[cliente.diaCobro];
+            
+            if (indiceLaboralCliente <= indiceLaboralHoy) {
+                let totalPagado = cliente.historialPagos.reduce((sum, p) => sum + p.abono, 0);
+                let totalCargos = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
+                let saldoGlobal = cliente.precio + totalCargos - totalPagado;
+
+                if (saldoGlobal > 0) {
+                    let yaPagoEstaSemana = false;
+                    cliente.historialPagos.forEach(pago => {
+                        const fPago = parsearFechaTexto(pago.fecha);
+                        if (fPago >= fechaViernesInicio && fPago <= fechaJuevesFin) {
+                            yaPagoEstaSemana = true;
+                        }
+                    });
+
+                    if (!yaPagoEstaSemana) {
+                        acumuladoTotalPendiente += cliente.abonoSemanal;
+                        
+                        const textoRecordatorio = `Hola *${cliente.nombre}*, te saludamos de DISTINTA.COM. Le recordamos que su día de pago asignado fue el *${cliente.diaCobro}* y aún no vemos reflejado su abono de esta semana por *${formatearDinero(cliente.abonoSemanal)}*. ¿Nos podría confirmar si requiere servicio a domicilio? Quedamos a sus órdenes.`;
+                        const urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(textoRecordatorio)}`;
+
+                        let fila = `<tr>
+                            <td><span class="badge bg-dark">N° ${cliente.folio}</span></td>
+                            <td class="text-start"><strong>${cliente.nombre}</strong><br><small class="text-muted">Cobro original: ${cliente.diaCobro}</small></td>
+                            <td class="text-danger fw-bold">${formatearDinero(cliente.abonoSemanal)}</td>
+                            <td>
+                                <a href="${urlWhatsApp}" target="_blank" class="btn btn-success btn-sm fw-bold shadow-sm px-3">💬 Enviar Recordatorio</a>
+                            </td>
+                        </tr>`;
+                        cuerpo.innerHTML += fila;
+                    }
+                }
+            }
+        });
+
+        if (cuerpo.innerHTML === "") {
+            cuerpo.innerHTML = `<tr><td colspan="4" class="text-muted small">Todos los clientes programados se encuentran al corriente.</td></tr>`;
+        }
+        document.getElementById("lblTotalReporte").innerText = formatearDinero(acumuladoTotalPendiente);
     }
 
     function seleccionarCliente(index) {
@@ -436,10 +519,7 @@
         renderizarHistorialCliente(cliente);
 
         const hoy = new Date();
-        const año = hoy.getFullYear();
-        const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-        const dia = String(hoy.getDate()).padStart(2, '0');
-        document.getElementById("inputFechaPago").value = `${año}-${mes}-${dia}`;
+        document.getElementById("inputFechaPago").value = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
 
         document.getElementById("vistaBusqueda").classList.add("d-none");
         document.getElementById("vistaTarjeta").classList.remove("d-none");
@@ -449,14 +529,15 @@
         const contenedor = document.getElementById("contenedorDatosCliente");
         contenedor.innerHTML = `
             <div class="col-md-6">
-                <p class="mb-1"><strong>NOMBRE:</strong> <span id="lblNombre">${cliente.nombre}</span></p>
-                <p class="mb-1"><strong>DIRECCIÓN:</strong> <span id="lblDireccion">${cliente.direccion}</span></p>
-                <p class="mb-1"><strong>ZONA:</strong> <span id="lblZona">${cliente.zona || 'Local'}</span></p>
+                <p class="mb-1"><strong>NOMBRE:</strong> <span>${cliente.nombre}</span></p>
+                <p class="mb-1"><strong>DIRECCIÓN:</strong> <span>${cliente.direccion}</span></p>
+                <p class="mb-1"><strong>ZONA:</strong> <span>${cliente.zona || 'Local'}</span></p>
+                <p class="mb-1"><strong>DÍA DE COBRO:</strong> <span class="badge bg-secondary">${cliente.diaCobro || 'Sin Asignar'}</span></p>
             </div>
             <div class="col-md-6 text-md-end">
-                <p class="mb-1"><strong>ARTÍCULO:</strong> <span id="lblArticulo">${cliente.articulo}</span></p>
-                <p class="mb-1"><strong>PRECIO:</strong> <span id="lblPrecio">${formatearDinero(cliente.precio)}</span></p>
-                <p class="mb-1"><strong>IMPORTE SEMANAL:</strong> <span id="lblAbonoSemanal">${formatearDinero(cliente.abonoSemanal)}</span></p>
+                <p class="mb-1"><strong>ARTÍCULO:</strong> <span>${cliente.articulo}</span></p>
+                <p class="mb-1"><strong>PRECIO:</strong> <span>${formatearDinero(cliente.precio)}</span></p>
+                <p class="mb-1"><strong>IMPORTE SEMANAL:</strong> <span>${formatearDinero(cliente.abonoSemanal)}</span></p>
             </div>`;
     }
 
@@ -480,6 +561,17 @@
                             <option value="Foránea" ${cliente.zona === 'Foránea' ? 'selected' : ''}>Foránea</option>
                         </select>
                     </div>
+                    <div class="mb-2"><strong>DÍA COBRO:</strong>
+                        <select id="editDiaCobro" class="form-select form-select-sm">
+                            <option value="Viernes" ${cliente.diaCobro === 'Viernes' ? 'selected' : ''}>Viernes</option>
+                            <option value="Sábado" ${cliente.diaCobro === 'Sábado' ? 'selected' : ''}>Sábado</option>
+                            <option value="Domingo" ${cliente.diaCobro === 'Domingo' ? 'selected' : ''}>Domingo</option>
+                            <option value="Lunes" ${cliente.diaCobro === 'Lunes' ? 'selected' : ''}>Lunes</option>
+                            <option value="Martes" ${cliente.diaCobro === 'Martes' ? 'selected' : ''}>Martes</option>
+                            <option value="Miércoles" ${cliente.diaCobro === 'Miércoles' ? 'selected' : ''}>Miércoles</option>
+                            <option value="Jueves" ${cliente.diaCobro === 'Jueves' ? 'selected' : ''}>Jueves</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-6">
                     <div class="mb-2"><strong>ARTÍCULO:</strong><input type="text" id="editArticulo" class="form-control form-control-sm" value="${cliente.articulo}"></div>
@@ -490,6 +582,7 @@
             const nombreNue = document.getElementById("editNombre").value;
             const direccionNue = document.getElementById("editDireccion").value;
             const zonaNue = document.getElementById("editZona").value;
+            const diaCobroNue = document.getElementById("editDiaCobro").value;
             const articuloNue = document.getElementById("editArticulo").value;
             const precioNue = parseFloat(document.getElementById("editPrecio").value) || 0;
             const abonoNue = parseFloat(document.getElementById("editAbono").value) || 0;
@@ -500,6 +593,7 @@
                     nombre: nombreNue,
                     direccion: direccionNue,
                     zona: zonaNue,
+                    diaCobro: diaCobroNue,
                     articulo: articuloNue,
                     precio: precioNue,
                     abonoSemanal: abonoNue
@@ -515,8 +609,7 @@
 
     async function eliminarClienteActual() {
         const cliente = clientesBD[clienteSeleccionadoIndex];
-        const confirmar = confirm(`¿Borrar permanentemente a ${cliente.nombre}?`);
-        if (confirmar) {
+        if (confirm(`¿Borrar permanentemente a ${cliente.nombre}?`)) {
             try {
                 await deleteDoc(doc(db, "clientes", cliente.id));
                 clienteSeleccionadoIndex = null;
@@ -536,9 +629,8 @@
         cliente.historialPagos.forEach((pago, i) => {
             acumuladoPagado += pago.abono;
             saldoCalculado = saldoCalculado - pago.abono + pago.cargo;
-            let numSemana = String(i + 1).padStart(2, '0');
             let fila = `<tr>
-                <td><strong>${numSemana}</strong></td>
+                <td><strong>${String(i + 1).padStart(2, '0')}</strong></td>
                 <td>${formatearDinero(pago.abono)}</td>
                 <td>${formatearDinero(acumuladoPagado)}</td>
                 <td>${formatearDinero(pago.cargo)}</td>
@@ -592,7 +684,6 @@
         document.getElementById("vistaBusqueda").classList.remove("d-none");
     }
 
-    // DOCUMENTACIÓN: Validación del operador lógico de respaldo para la variable 'zona' al compartir por WhatsApp
     function compartirPorWhatsApp() {
         const cliente = clientesBD[clienteSeleccionadoIndex];
         let totalPagado = cliente.historialPagos.reduce((sum, p) => sum + p.abono, 0);
@@ -601,12 +692,11 @@
 
         const urlActual = window.location.href.split('?')[0];
         const enlaceCliente = `${urlActual}?folio=${cliente.folio}&modo=cliente`;
-        let zonaCliente = cliente.zona || 'Local';
 
         const mensaje = `Hola *${cliente.nombre}*, te compartimos tu estado de cuenta en DISTINTA.COM.\n\n` +
                         `🔹 *Crédito N°:* ${cliente.folio}\n` +
                         `🔹 *Artículo:* ${cliente.articulo}\n` +
-                        `🔹 *Zona:* ${zonaCliente}\n` +
+                        `🔹 *Zona:* ${cliente.zona || 'Local'}\n` +
                         `🔹 *Saldo Restante:* ${formatearDinero(saldoActual)}\n\n` +
                         `Revisa tu historial aquí: ${enlaceCliente}`;
 
@@ -640,6 +730,7 @@
     window.compartirPorWhatsApp = compartirPorWhatsApp;
     window.consultarPagosRealizados = consultarPagosRealizados;
     window.consultarRetrasosPendientes = consultarRetrasosPendientes;
+    window.consultarClientesSinPagoEstaSemana = consultarClientesSinPagoEstaSemana;
 </script>
 
 </body>
