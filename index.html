@@ -310,9 +310,10 @@
         }
     }
 
-    function filtrarClientes() {
+   function filtrarClientes() {
     const query = document.getElementById("inputBuscar").value.toLowerCase();
-    const container = document.getElementById("listClientesContainer");
+    // CORRECCIÓN: Se cambia "listClientesContainer" por "listaClientesContainer" para coincidir exactamente con el HTML
+    const container = document.getElementById("listaClientesContainer");
     container.innerHTML = "";
 
     clientesBD.forEach((cliente, index) => {
@@ -321,8 +322,7 @@
             let totalCargos = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
             let saldoActual = cliente.precio + totalCargos - totalPagado;
 
-            // DOCUMENTACIÓN: Declaración previa y segura de variables locales con valores de respaldo
-            // para evitar errores de tipo 'undefined' al procesar registros antiguos.
+            // Variables locales seguras con operadores de respaldo por si existen registros antiguos
             let zonaAsignada = cliente.zona || 'Local';
             let diaCobroAsignado = cliente.diaCobro || 'Sin asignar';
 
@@ -333,6 +333,11 @@
                     <br><small class="text-muted">${cliente.articulo} (${zonaAsignada} - Cobro: ${diaCobroAsignado})</small>
                 </div>
                 <span class="badge bg-danger">Saldo: ${formatearDinero(saldoActual)}</span>
+            </div>`;
+            container.innerHTML += item;
+        }
+    });
+}
             </div>`;
             container.innerHTML += item;
         }
