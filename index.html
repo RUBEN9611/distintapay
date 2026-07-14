@@ -266,7 +266,8 @@
             }
         }
         filtrarClientes();
-        verificarPermisosAccAccess();
+        // CORRECCIÓN: Se ejecuta obligatoriamente la función al recibir datos en tiempo real
+        verificarPermisosAcceso(); 
     });
 
     // DOCUMENTACIÓN JAVASCRIPT: Inserción del nuevo parámetro diaCobro capturado del DOM HTML
@@ -604,13 +605,15 @@
         document.getElementById("vistaBusqueda").classList.remove("d-none");
     }
 
+    // DOCUMENTACIÓN JAVASCRIPT: Ajuste del enlace para limpiar la URL de producción y aislar la vista
     function compartirPorWhatsApp() {
         const cliente = clientesBD[clienteSeleccionadoIndex];
         let totalPagado = cliente.historialPagos.reduce((sum, p) => sum + p.abono, 0);
         let totalCargos = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
         let saldoActual = cliente.precio + totalCargos - totalPagado;
 
-        const urlActual = window.location.href.split('?')[0];
+        // CORRECCIÓN: Limpia de forma exacta la URL eliminando parámetros anteriores para construir un enlace limpio
+        const urlActual = window.location.origin + window.location.pathname;
         const enlaceCliente = `${urlActual}?folio=${cliente.folio}&modo=cliente`;
 
         const mensaje = `Hola *${cliente.nombre}*, te compartimos tu estado de cuenta en DISTINTA.COM.\n\n` +
@@ -623,11 +626,13 @@
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`, '_blank');
     }
 
+    // DOCUMENTACIÓN JAVASCRIPT: Validación y filtrado del DOM para restringir la vista del cliente
     function verificarPermisosAcceso() {
         const parametros = new URLSearchParams(window.location.search);
         const modo = parametros.get("modo");
         const folioBuscado = parametros.get("folio");
 
+        // Si detecta los parámetros del cliente en la URL, oculta los controles de administración
         if (modo === "cliente" && folioBuscado && clientesBD.length > 0) {
             const index = clientesBD.findIndex(c => c.folio === folioBuscado);
             if (index !== -1) {
