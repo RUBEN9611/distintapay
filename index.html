@@ -277,29 +277,37 @@
         verificarPermisosAcceso();
     });
 
-    async function registrarCliente(event) {
+    // BORRA DESDE AQUÍ (Línea 280):
+async function registrarCliente(event) {
     event.preventDefault();
-    
-    // Captura segura de los elementos del formulario mediante variables de referencia
-    const elFolio = document.getElementById("regNumero");
-    const elNombre = document.getElementById("regNombre");
-    const elDireccion = document.getElementById("regDireccion");
-    const elZona = document.getElementById("regZona");
-    const elDiaCobro = document.getElementById("regDiaCobro");
-    const elArticulo = document.getElementById("regArticulo");
-    const elPrecio = document.getElementById("regPrecio");
-    const elAbono = document.getElementById("regAbono");
+    const folio = document.getElementById("regNumero").value;
+    const nombre = document.getElementById("regNombre").value;
+    const direccion = document.getElementById("regDireccion").value;
+    const zona = document.getElementById("regZona").value;
+    const diaCobro = document.getElementById("regDiaCobro").value;
+    const articulo = document.getElementById("regArticulo").value;
+    const precio = parseFloat(document.getElementById("regPrecio").value);
+    const abonoSemanal = parseFloat(document.getElementById("regAbono").value);
 
-    // DOCUMENTACIÓN: Asignación con operadores de respaldo (||). Si el elemento no existe 
-    // en el formulario HTML actual, se asigna un valor por defecto seguro evitando que el script falle.
-    const folio = elFolio ? elFolio.value : "";
-    const nombre = elNombre ? elNombre.value : "";
-    const direccion = elDireccion ? elDireccion.value : "";
-    const zona = elZona ? elZona.value : "Local";
-    const diaCobro = elDiaCobro ? elDiaCobro.value : "Viernes"; 
-    const articulo = elArticulo ? elArticulo.value : "";
-    const precio = elPrecio ? parseFloat(elPrecio.value) || 0 : 0;
-    const abonoSemanal = elAbono ? parseFloat(elAbono.value) || 0 : 0;
+    try {
+        await addDoc(collection(db, "clientes"), {
+            folio: folio,
+            nombre: nombre,
+            direccion: direccion,
+            zona: zona,
+            diaCobro: diaCobro,
+            articulo: articulo,
+            precio: precio,
+            abonoSemanal: abonoSemanal,
+            historialPagos: []
+        });
+        document.getElementById("formNuevoCliente").reset();
+        alert("Cliente guardado con éxito.");
+    } catch (error) {
+        console.error("Error: ", error);
+    }
+}
+// HASTA AQUÍ (Asegúrate de incluir la última llave de cierre } )
 
     try {
         // Inserción segura del nuevo documento en la colección de Firebase
