@@ -101,7 +101,7 @@
         <div class="col-12 mt-4">
             <div class="seccion-reporte p-4 shadow-sm">
                 <h4 class="fw-bold text-dark mb-3">📊 Panel de Consultas y Reportes Financieros</h4>
-                <div class="row g-3 align-items-end mb-4">
+                <div class="row g-3 align-items-end mb-4 border-bottom pb-4">
                     <div class="col-6 col-md-3">
                         <label class="form-label small fw-bold">Fecha Inicial</label>
                         <input type="date" id="repFechaInicio" class="form-control">
@@ -118,20 +118,25 @@
                     </div>
                 </div>
 
-                <h5 class="fw-bold text-secondary" id="tituloTablaReporte">Resultados de la Consulta</h5>
+                <!-- MODIFICACIÓN HTML: ENCABEZADO FLEXIBLE CON EL BOTÓN DEL MOTOR DE CONSULTAS -->
+                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                    <h5 class="fw-bold text-secondary mb-0" id="tituloTablaReporte">Resultados de la Consulta</h5>
+                    <button class="btn btn-warning btn-sm fw-bold text-dark shadow-sm px-3" onclick="consultarClientesSinPagoEstaSemana()">🚨 Detectar Impagos Semanales</button>
+                </div>
+
                 <div class="table-responsive mt-2">
-                    <table class="table table-bordered table-striped text-center">
+                    <table class="table table-bordered table-striped text-center align-middle">
                         <thead class="table-dark">
                             <tr>
                                 <th>N° CLIENTE / FOLIO</th>
                                 <th>NOMBRE</th>
                                 <th id="columnaDinamicaMonto">IMPORTE</th>
-                                <th>FECHA</th>
+                                <th>FECHA / ACCIÓN</th>
                             </tr>
                         </thead>
                         <tbody id="cuerpoTablaReporte">
                             <tr>
-                                <td colspan="4" class="text-muted small">Selecciona un rango de fechas y ejecuta una consulta.</td>
+                                <td colspan="4" class="text-muted small">Selecciona un rango de fechas o ejecuta la detección de impagos semanales.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -245,6 +250,10 @@
     let clienteSeleccionadoIndex = null;
     let editando = false;
 
+    // INYECCIÓN JAVASCRIPT: DEFINICIÓN DE LA SEMANA CRONOLÓGICA LABORAL
+    const ORDEN_LABORAL = { "Viernes": 0, "Sábado": 1, "Domingo": 2, "Lunes": 3, "Martes": 4, "Miércoles": 5, "Jueves": 6 };
+    const MAPEO_NATIVO_A_LABORAL = { 5: 0, 6: 1, 0: 2, 1: 3, 2: 4, 3: 5, 4: 6 };
+
     function formatearDinero(cantidad) {
         return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(cantidad);
     }
@@ -266,11 +275,9 @@
             }
         }
         filtrarClientes();
-        // CORRECCIÓN: Se ejecuta obligatoriamente la función al recibir datos en tiempo real
         verificarPermisosAcceso(); 
     });
 
-    // DOCUMENTACIÓN JAVASCRIPT: Inserción del nuevo parámetro diaCobro capturado del DOM HTML
     async function registrarCliente(event) {
         event.preventDefault();
         const folio = document.getElementById("regNumero").value;
@@ -301,7 +308,6 @@
         }
     }
 
-    // DOCUMENTACIÓN JAVASCRIPT: Renderizado defensivo en la lista principal usando coincidencia exacta de IDs
     function filtrarClientes() {
         const query = document.getElementById("inputBuscar").value.toLowerCase();
         const container = document.getElementById("listaClientesContainer");
@@ -315,7 +321,6 @@
                 let totalCargos = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
                 let saldoActual = cliente.precio + totalCargos - totalPagado;
 
-                // Control preventivo de datos nulos en la nube
                 let zonaAsignada = cliente.zona || 'Local';
                 let diaCobroAsignado = cliente.diaCobro || 'Sin asignar';
 
@@ -355,6 +360,7 @@
         let acumuladoTotal = 0;
 
         document.getElementById("columnaDinamicaMonto").innerText = "IMPORTE ABONADO";
+        document.getElementById("tituloTablaReporte").innerText = "Resultados de la Consulta";
 
         clientesBD.forEach(cliente => {
             cliente.historialPagos.forEach(pago => {
@@ -394,6 +400,7 @@
         let acumuladoRetrasos = 0;
 
         document.getElementById("columnaDinamicaMonto").innerText = "RETRASO ACUMULADO";
+        document.getElementById("tituloTablaReporte").innerText = "Resultados de la Consulta";
 
         const milisegundosPorSemana = 1000 * 60 * 60 * 24 * 7;
         let semanasPeriodo = Math.ceil((fechaFin - fechaInicio) / milisegundosPorSemana);
@@ -435,6 +442,80 @@
             cuerpo.innerHTML = `<tr><td colspan="4" class="text-muted">Ningún cliente presenta retrasos en este periodo.</td></tr>`;
         }
         document.getElementById("lblTotalReporte").innerText = formatearDinero(acumuladoRetrasos);
+    }
+
+    // INYECCIÓN JAVASCRIPT: MOTOR ALGORÍTMICO PARA DETECTAR IMPAGOS DE VIERNES A JUEVES
+    function consultarClientesSinPagoEstaSemana() {
+        const cuerpo = document.getElementById("cuerpoTablaReporte");
+        if (!cuerpo) return;
+        
+        cuerpo.innerHTML = "";
+        document.getElementById("columnaDinamicaMonto").innerText = "CUOTA PENDIENTE";
+        document.getElementById("tituloTablaReporte").innerText = "Resultados: Impagos de la Semana Actual";
+        
+        const hoy = new Date();
+        const diaSemanaNativo = hoy.getDay();
+        const indiceLaboralHoy = MAPEO_NATIVO_A_LABORAL[diaSemanaNativo];
+
+        // Determinar cuántos días han transcurrido desde el último Viernes
+        let diasDesdeViernes = diaSemanaNativo >= 5 ? diaSemanaNativo - 5 : diaSemanaNativo + 2;
+        
+        let fechaViernesInicio = new Date(hoy);
+        fechaViernesInicio.setDate(hoy.getDate() - diasDesdeViernes);
+        fechaViernesInicio.setHours(0, 0, 0, 0);
+
+        let fechaJuevesFin = new Date(fechaViernesInicio);
+        fechaJuevesFin.setDate(fechaViernesInicio.getDate() + 6);
+        fechaJuevesFin.setHours(23, 59, 59, 999);
+
+        let acumuladoTotalPendiente = 0;
+
+        clientesBD.forEach(cliente => {
+            if (!cliente.diaCobro) return;
+
+            const indiceLaboralCliente = ORDEN_LABORAL[cliente.diaCobro];
+            
+            // Evaluar únicamente si el día de cobro asignado ya transcurrió o es el día de hoy
+            if (indiceLaboralCliente <= indiceLaboralHoy) {
+                let totalPagado = cliente.historialPagos.reduce((sum, p) => sum + p.abono, 0);
+                let totalCargos = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
+                let saldoGlobal = cliente.precio + totalCargos - totalPagado;
+
+                if (saldoGlobal > 0) {
+                    let yaPagoEstaSemana = false;
+
+                    cliente.historialPagos.forEach(pago => {
+                        const fPago = parsearFechaTexto(pago.fecha);
+                        if (fPago >= fechaViernesInicio && fPago <= fechaJuevesFin) {
+                            yaPagoEstaSemana = true;
+                        }
+                    });
+
+                    if (!yaPagoEstaSemana) {
+                        acumuladoTotalPendiente += cliente.abonoSemanal;
+                        
+                        // Formatear mensaje persuasivo automatizado para cobro por WhatsApp
+                        const textoRecordatorio = `Hola *${cliente.nombre}*, te saludamos de DISTINTA.COM. Le recordamos que su día de pago asignado fue el *${cliente.diaCobro}* y aún no vemos reflejado su abono de esta semana por *${formatearDinero(cliente.abonoSemanal)}*. ¿Nos podría confirmar si requiere servicio a domicilio? Quedamos a sus órdenes.`;
+                        const urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(textoRecordatorio)}`;
+
+                        let fila = `<tr>
+                            <td><span class="badge bg-dark">N° ${cliente.folio}</span></td>
+                            <td class="text-start"><strong>${cliente.nombre}</strong><br><small class="text-muted">Cobro original: ${cliente.diaCobro}</small></td>
+                            <td class="text-danger fw-bold">${formatearDinero(cliente.abonoSemanal)}</td>
+                            <td>
+                                <a href="${urlWhatsApp}" target="_blank" class="btn btn-success btn-sm fw-bold shadow-sm px-3">💬 Enviar Recordatorio</a>
+                            </td>
+                        </tr>`;
+                        cuerpo.innerHTML += fila;
+                    }
+                }
+            }
+        });
+
+        if (cuerpo.innerHTML === "") {
+            cuerpo.innerHTML = `<tr><td colspan="4" class="text-muted small">Todos los clientes programados se encuentran al corriente esta semana.</td></tr>`;
+        }
+        document.getElementById("lblTotalReporte").innerText = formatearDinero(acumuladoTotalPendiente);
     }
 
     function seleccionarCliente(index) {
@@ -605,14 +686,12 @@
         document.getElementById("vistaBusqueda").classList.remove("d-none");
     }
 
-    // DOCUMENTACIÓN JAVASCRIPT: Ajuste del enlace para limpiar la URL de producción y aislar la vista
     function compartirPorWhatsApp() {
         const cliente = clientesBD[clienteSeleccionadoIndex];
         let totalPagado = cliente.historialPagos.reduce((sum, p) => sum + p.abono, 0);
         let totalCargos = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
         let saldoActual = cliente.precio + totalCargos - totalPagado;
 
-        // CORRECCIÓN: Limpia de forma exacta la URL eliminando parámetros anteriores para construir un enlace limpio
         const urlActual = window.location.origin + window.location.pathname;
         const enlaceCliente = `${urlActual}?folio=${cliente.folio}&modo=cliente`;
 
@@ -626,13 +705,11 @@
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`, '_blank');
     }
 
-    // DOCUMENTACIÓN JAVASCRIPT: Validación y filtrado del DOM para restringir la vista del cliente
     function verificarPermisosAcceso() {
         const parametros = new URLSearchParams(window.location.search);
         const modo = parametros.get("modo");
         const folioBuscado = parametros.get("folio");
 
-        // Si detecta los parámetros del cliente en la URL, oculta los controles de administración
         if (modo === "cliente" && folioBuscado && clientesBD.length > 0) {
             const index = clientesBD.findIndex(c => c.folio === folioBuscado);
             if (index !== -1) {
@@ -655,6 +732,7 @@
     window.compartirPorWhatsApp = compartirPorWhatsApp;
     window.consultarPagosRealizados = consultarPagosRealizados;
     window.consultarRetrasosPendientes = consultarRetrasosPendientes;
+    window.consultarClientesSinPagoEstaSemana = consultarClientesSinPagoEstaSemana;
 </script>
 
 </body>
