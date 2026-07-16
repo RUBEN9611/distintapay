@@ -13,7 +13,7 @@
         .logo-negocio { max-height: 85px; width: auto; object-fit: contain; }
         .tabla-pagos th { background-color: #0056b3 !important; color: white; text-align: center; font-size: 0.85rem; }
         .tabla-pagos td { text-align: center; vertical-align: middle; font-size: 0.85rem; background-color: #ffffff; }
-        .lista-clientes-item { pointer: cursor; transition: background 0.2s; }
+        .lista-clientes-item { cursor: pointer; transition: background 0.2s; }
         .lista-clientes-item:hover { background-color: #d0e4ff; }
         .seccion-reporte { background-color: #ffffff; border-radius: 8px; border: 1px solid #dee2e6; }
     </style>
@@ -71,7 +71,7 @@
                         <input type="text" id="regArticulo" class="form-control" placeholder="Ej: Celular / Préstamo" required>
                     </div>
 
-                    <!-- REJILLA DE TRES COLUMNAS CON EL CAMPO INFORMATIVO ASIGNADO -->
+                    <!-- REJILLA CON EL CAMPO INFORMATIVO ASIGNADO -->
                     <div class="row g-2 mb-3">
                         <div class="col-4">
                             <label class="form-label small fw-bold">Precio ($)</label>
@@ -98,7 +98,14 @@
                 <div class="mb-3">
                     <input type="text" id="inputBuscar" class="form-control form-control-lg" placeholder="🔍 Buscar por Número de Cliente o Nombre..." oninput="filtrarClientes()">
                 </div>
-                <h5 class="fw-bold mt-4">Lista de Cuentas Activas</h5>
+
+                <!-- MODIFICACIÓN HTML: ENFOQUE INFORMATIVO DE CONTEO DE CLIENTES REGISTRADOS -->
+                <div class="alert alert-info py-2 px-3 mb-2 d-flex justify-content-between align-items-center shadow-sm">
+                    <span class="fw-bold text-dark small">👥 TOTAL CLIENTES REGISTRADOS (EN LISTA):</span>
+                    <span class="fw-bold text-primary fs-5" id="lblSumaTotalActiva">0</span>
+                </div>
+
+                <h5 class="fw-bold mt-3">Lista de Cuentas Activas</h5>
                 <div class="list-group shadow-sm overflow-auto" style="max-height: 250px;" id="listaClientesContainer"></div>
             </div>
         </div>
@@ -315,7 +322,7 @@
         }
     }
 
-    // DOCUMENTACIÓN JAVASCRIPT: Ajuste del cálculo matemático (El campo Cargo Atraso Inicial se vuelve 100% informativo)
+    // DOCUMENTACIÓN JAVASCRIPT: Modificación del acumulador para contar registros en lugar de dinero
     function filtrarClientes() {
         const query = document.getElementById("inputBuscar").value.toLowerCase();
         const container = document.getElementById("listaClientesContainer");
@@ -323,13 +330,17 @@
         if (!container) return;
         container.innerHTML = "";
 
+        // Variable numérica para contar los registros agregados
+        let totalClientesListados = 0;
+
         clientesBD.forEach((cliente, index) => {
             if (cliente.nombre.toLowerCase().includes(query) || cliente.folio.toLowerCase().includes(query)) {
                 let totalPagado = cliente.historialPagos.reduce((sum, p) => sum + p.abono, 0);
                 let totalCargosHistorial = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
-                
-                // CORRECCIÓN: Se retira la variable "cargoAtrasoInicial" de la ecuación para no alterar la deuda
                 let saldoActual = cliente.precio + totalCargosHistorial - totalPagado;
+
+                // CORRECCIÓN: Incrementa en 1 unidad el contador por cada registro válido en la lista
+                totalClientesListados++;
 
                 let zonaAsignada = cliente.zona || 'Local';
                 let diaCobroAsignado = cliente.diaCobro || 'Sin asignar';
@@ -345,6 +356,12 @@
                 container.innerHTML += item;
             }
         });
+
+        // Inyección del número entero totalizado en el DOM de la aplicación
+        const lblSumaTotal = document.getElementById("lblSumaTotalActiva");
+        if (lblSumaTotal) {
+            lblSumaTotal.innerText = totalClientesListados;
+        }
     }
 
     function parsearFechaTexto(fechaTexto) {
@@ -419,7 +436,6 @@
         clientesBD.forEach(cliente => {
             let totalPagado = cliente.historialPagos.reduce((sum, p) => sum + p.abono, 0);
             let totalCargosHistorial = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
-            // CORRECCIÓN: Saldo global limpio de cobros iniciales para no alterar las auditorías analíticas
             let saldoGlobal = cliente.precio + totalCargosHistorial - totalPagado;
 
             if (saldoGlobal > 0) {
@@ -487,7 +503,6 @@
             if (indiceLaboralCliente <= indiceLaboralHoy) {
                 let totalPagado = cliente.historialPagos.reduce((sum, p) => sum + p.abono, 0);
                 let totalCargosHistorial = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
-                // CORRECCIÓN: Filtro del motor ajustado al saldo nativo
                 let saldoGlobal = cliente.precio + totalCargosHistorial - totalPagado;
 
                 if (saldoGlobal > 0) {
@@ -631,12 +646,9 @@
         }
     }
 
-    // DOCUMENTACIÓN JAVASCRIPT: La tabla de amortización inicia su balance basándose únicamente en el Precio base
     function renderizarHistorialCliente(cliente) {
         const tabla = document.getElementById("cuerpoTablaPagos");
         tabla.innerHTML = ""; 
-        
-        // CORRECCIÓN: El saldo calculado inicial vuelve a ser estrictamente cliente.precio
         let acumuladoPagado = 0;
         let saldoCalculado = cliente.precio;
 
