@@ -33,15 +33,15 @@
                         <input type="text" id="regNumero" class="form-control" placeholder="Ej: 123-D" required>
                     </div>
                     
-                    <!-- REJILLA HTML: NOMBRE COMPLETO Y SELECCIÓN DE COLOR CON DESCRIPCIÓN OPERATIVA -->
+                    <!-- REJILLA HTML: NOMBRE COMPLETO Y SELECCIÓN DE COLOR CON LLAMADOS ALINEADOS A CAMBIO EN TIEMPO REAL -->
                     <div class="row g-2 mb-2">
                         <div class="col-8">
                             <label class="form-label small fw-bold">Nombre Completo</label>
-                            <input type="text" id="regNombre" class="form-control" placeholder="Nombre del cliente" required>
+                            <input type="text" id="regNombre" class="form-control fw-bold" placeholder="Nombre del cliente" oninput="actualizarColorInputRegistro()" required>
                         </div>
                         <div class="col-4">
                             <label class="form-label small fw-bold">Color Texto</label>
-                            <select id="regColorNombre" class="form-select" required>
+                            <select id="regColorNombre" class="form-select" onchange="actualizarColorInputRegistro()" required>
                                 <option value="#000000" selected>Negro (Artículo)</option>
                                 <option value="#004085">Azul (Préstamos)</option>
                                 <option value="#198754">Verde (Quincena)</option>
@@ -303,6 +303,24 @@
         verificarPermisosAcceso(); 
     });
 
+    // DOCUMENTACIÓN JAVASCRIPT: Función reactiva para cambiar el color del input de registro al vuelo
+    function actualizarColorInputRegistro() {
+        const inputNombre = document.getElementById("regNombre");
+        const selectColor = document.getElementById("regColorNombre");
+        if (inputNombre && selectColor) {
+            inputNombre.style.color = selectColor.value;
+        }
+    }
+
+    // DOCUMENTACIÓN JAVASCRIPT: Función reactiva para cambiar el color del input de edición al vuelo
+    function actualizarColorInputEdicion() {
+        const inputNombreEdit = document.getElementById("editNombre");
+        const selectColorEdit = document.getElementById("editColorNombre");
+        if (inputNombreEdit && selectColorEdit) {
+            inputNombreEdit.style.color = selectColorEdit.value;
+        }
+    }
+
     async function registrarCliente(event) {
         event.preventDefault();
         const folio = document.getElementById("regNumero").value;
@@ -333,6 +351,7 @@
             document.getElementById("formNuevoCliente").reset();
             document.getElementById("regCargoAtraso").value = "0";
             document.getElementById("regColorNombre").value = "#000000";
+            document.getElementById("regNombre").style.color = "#000000"; // Resetea el color visual del input
             alert("Cliente guardado con éxito.");
         } catch (error) {
             console.error("Error al registrar cliente: ", error);
@@ -595,7 +614,6 @@
             </div>`;
     }
 
-    // DOCUMENTACIÓN JAVASCRIPT: Modificación del selector en el modo edición para incluir los paréntesis explicativos
     async function activarModoEdicion() {
         const cliente = clientesBD[clienteSeleccionadoIndex];
         const btn = document.getElementById("btnEditarCliente");
@@ -608,11 +626,12 @@
             const colorActual = cliente.colorNombre || '#000000';
             const contenedor = document.getElementById("contenedorDatosCliente");
             
+            // DOCUMENTACIÓN JAVASCRIPT: Se inyecta la escucha "onchange" y "oninput" al input de edición para responder reactivamente
             contenedor.innerHTML = `
                 <div class="col-md-6">
-                    <div class="mb-2"><strong>NOMBRE:</strong><input type="text" id="editNombre" class="form-control form-control-sm" value="${cliente.nombre}"></div>
+                    <div class="mb-2"><strong>NOMBRE:</strong><input type="text" id="editNombre" class="form-control form-control-sm fw-bold" style="color: ${colorActual};" value="${cliente.nombre}" oninput="actualizarColorInputEdicion()"></div>
                     <div class="mb-2"><strong>COLOR NOMBRE (TIPO):</strong>
-                        <select id="editColorNombre" class="form-select form-select-sm">
+                        <select id="editColorNombre" class="form-select form-select-sm" onchange="actualizarColorInputEdicion()">
                             <option value="#000000" ${colorActual === '#000000' ? 'selected' : ''}>Negro (Artículo)</option>
                             <option value="#004085" ${colorActual === '#004085' ? 'selected' : ''}>Azul (Préstamos)</option>
                             <option value="#198754" ${colorActual === '#198754' ? 'selected' : ''}>Verde (Quincena)</option>
@@ -787,6 +806,8 @@
     window.consultarPagosRealizados = consultarPagosRealizados;
     window.consultarRetrasosPendientes = consultarRetrasosPendientes;
     window.consultarClientesSinPagoEstaSemana = consultarClientesSinPagoEstaSemana;
+    window.actualizarColorInputRegistro = actualizarColorInputRegistro;
+    window.actualizarColorInputEdicion = actualizarColorInputEdicion;
 </script>
 
 </body>
