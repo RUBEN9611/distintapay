@@ -99,7 +99,7 @@
                     <input type="text" id="inputBuscar" class="form-control form-control-lg" placeholder="🔍 Buscar por Número de Cliente o Nombre..." oninput="filtrarClientes()">
                 </div>
 
-                <!-- MODIFICACIÓN HTML: ENFOQUE INFORMATIVO DE CONTEO DE CLIENTES REGISTRADOS -->
+                <!-- ENFOQUE INFORMATIVO DE CONTEO DE CLIENTES REGISTRADOS -->
                 <div class="alert alert-info py-2 px-3 mb-2 d-flex justify-content-between align-items-center shadow-sm">
                     <span class="fw-bold text-dark small">👥 TOTAL CLIENTES REGISTRADOS (EN LISTA):</span>
                     <span class="fw-bold text-primary fs-5" id="lblSumaTotalActiva">0</span>
@@ -142,13 +142,16 @@
                             <tr>
                                 <th>N° CLIENTE / FOLIO</th>
                                 <th>NOMBRE</th>
+                                <!-- DOCUMENTACIÓN HTML: Adición de la cabecera para la nueva columna informativa -->
+                                <th>ARTÍCULO / SERVICIO</th>
                                 <th id="columnaDinamicaMonto">IMPORTE</th>
                                 <th>FECHA / ACCIÓN</th>
                             </tr>
                         </thead>
                         <tbody id="cuerpoTablaReporte">
                             <tr>
-                                <td colspan="4" class="text-muted small">Selecciona un rango de fechas o ejecuta la detección de impagos semanales.</td>
+                                <!-- DOCUMENTACIÓN HTML: Incremento de colspan a 5 para cubrir la nueva columna uniformemente -->
+                                <td colspan="5" class="text-muted small">Selecciona un rango de fechas o ejecuta la detección de impagos semanales.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -322,7 +325,6 @@
         }
     }
 
-    // DOCUMENTACIÓN JAVASCRIPT: Modificación del acumulador para contar registros en lugar de dinero
     function filtrarClientes() {
         const query = document.getElementById("inputBuscar").value.toLowerCase();
         const container = document.getElementById("listaClientesContainer");
@@ -330,7 +332,6 @@
         if (!container) return;
         container.innerHTML = "";
 
-        // Variable numérica para contar los registros agregados
         let totalClientesListados = 0;
 
         clientesBD.forEach((cliente, index) => {
@@ -339,7 +340,6 @@
                 let totalCargosHistorial = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
                 let saldoActual = cliente.precio + totalCargosHistorial - totalPagado;
 
-                // CORRECCIÓN: Incrementa en 1 unidad el contador por cada registro válido en la lista
                 totalClientesListados++;
 
                 let zonaAsignada = cliente.zona || 'Local';
@@ -357,7 +357,6 @@
             }
         });
 
-        // Inyección del número entero totalizado en el DOM de la aplicación
         const lblSumaTotal = document.getElementById("lblSumaTotalActiva");
         if (lblSumaTotal) {
             lblSumaTotal.innerText = totalClientesListados;
@@ -394,9 +393,11 @@
                 const fechaPago = parsearFechaTexto(pago.fecha);
                 if (fechaPago >= fechaInicio && fechaPago <= fechaFin) {
                     acumuladoTotal += pago.abono;
+                    // DOCUMENTACIÓN JAVASCRIPT: Inyección de la celda de artículo en el listado de abonos
                     let fila = `<tr>
                         <td><strong>${cliente.folio}</strong></td>
                         <td>${cliente.nombre}</td>
+                        <td><span class="badge bg-secondary text-wrap">${cliente.articulo || 'Sin especificar'}</span></td>
                         <td class="text-success fw-bold">${formatearDinero(pago.abono)}</td>
                         <td>${pago.fecha}</td>
                     </tr>`;
@@ -406,7 +407,7 @@
         });
 
         if (cuerpo.innerHTML === "") {
-            cuerpo.innerHTML = `<tr><td colspan="4" class="text-muted">No se encontraron pagos en este rango.</td></tr>`;
+            cuerpo.innerHTML = `<tr><td colspan="5" class="text-muted">No se encontraron pagos en este rango.</td></tr>`;
         }
         document.getElementById("lblTotalReporte").innerText = formatearDinero(acumuladoTotal);
     }
@@ -454,9 +455,11 @@
                     if (retraso > saldoGlobal) retraso = saldoGlobal;
 
                     acumuladoRetrasos += retraso;
+                    // DOCUMENTACIÓN JAVASCRIPT: Inyección de la celda de artículo en el listado de retrasos históricos
                     let fila = `<tr>
                         <td><span class="badge bg-danger">N° ${cliente.folio}</span></td>
                         <td>${cliente.nombre}</td>
+                        <td><span class="badge bg-secondary text-wrap">${cliente.articulo || 'Sin especificar'}</span></td>
                         <td class="text-danger fw-bold">${formatearDinero(retraso)}</td>
                         <td>${semanasPeriodo} Sem. Evaluadas</td>
                     </tr>`;
@@ -466,7 +469,7 @@
         });
 
         if (cuerpo.innerHTML === "") {
-            cuerpo.innerHTML = `<tr><td colspan="4" class="text-muted">Ningún cliente presenta retrasos en este periodo.</td></tr>`;
+            cuerpo.innerHTML = `<tr><td colspan="5" class="text-muted">Ningún cliente presenta retrasos en este periodo.</td></tr>`;
         }
         document.getElementById("lblTotalReporte").innerText = formatearDinero(acumuladoRetrasos);
     }
@@ -521,9 +524,11 @@
                         const textoRecordatorio = `Hola *${cliente.nombre}*, te saludamos de DISTINTA.COM. Le recordamos que su día de pago asignado fue el *${cliente.diaCobro}* y aún no vemos reflejado su abono de esta semana por *${formatearDinero(cliente.abonoSemanal)}*. ¿Nos podría confirmar si requiere servicio a domicilio? Quedamos a sus órdenes.`;
                         const urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(textoRecordatorio)}`;
 
+                        // DOCUMENTACIÓN JAVASCRIPT: Inyección de la celda de artículo en la detección de impagos de la semana actual
                         let fila = `<tr>
                             <td><span class="badge bg-dark">N° ${cliente.folio}</span></td>
                             <td class="text-start"><strong>${cliente.nombre}</strong><br><small class="text-muted">Cobro original: ${cliente.diaCobro}</small></td>
+                            <td><span class="badge bg-secondary text-wrap">${cliente.articulo || 'Sin especificar'}</span></td>
                             <td class="text-danger fw-bold">${formatearDinero(cliente.abonoSemanal)}</td>
                             <td>
                                 <a href="${urlWhatsApp}" target="_blank" class="btn btn-success btn-sm fw-bold shadow-sm px-3">💬 Enviar Recordatorio</a>
@@ -536,7 +541,7 @@
         });
 
         if (cuerpo.innerHTML === "") {
-            cuerpo.innerHTML = `<tr><td colspan="4" class="text-muted small">Todos los clientes programados se encuentran al corriente esta semana.</td></tr>`;
+            cuerpo.innerHTML = `<tr><td colspan="5" class="text-muted small">Todos los clientes programados se encuentran al corriente esta semana.</td></tr>`;
         }
         document.getElementById("lblTotalReporte").innerText = formatearDinero(acumuladoTotalPendiente);
     }
