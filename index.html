@@ -32,24 +32,10 @@
                         <label class="form-label small fw-bold">Número de Cliente / Folio</label>
                         <input type="text" id="regNumero" class="form-control" placeholder="Ej: 123-D" required>
                     </div>
-                    
-                    <!-- REJILLA HTML: NOMBRE COMPLETO Y SELECCIÓN DE COLOR CON LLAMADOS ALINEADOS A CAMBIO EN TIEMPO REAL -->
-                    <div class="row g-2 mb-2">
-                        <div class="col-8">
-                            <label class="form-label small fw-bold">Nombre Completo</label>
-                            <input type="text" id="regNombre" class="form-control fw-bold" placeholder="Nombre del cliente" oninput="actualizarColorInputRegistro()" required>
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label small fw-bold">Color Texto</label>
-                            <select id="regColorNombre" class="form-select" onchange="actualizarColorInputRegistro()" required>
-                                <option value="#000000" selected>Negro (Artículo)</option>
-                                <option value="#004085">Azul (Préstamos)</option>
-                                <option value="#198754">Verde (Quincena)</option>
-                                <option value="#dc3545">Rojo (Atraso)</option>
-                            </select>
-                        </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Nombre Completo</label>
+                        <input type="text" id="regNombre" class="form-control" placeholder="Nombre del cliente" required>
                     </div>
-
                     <div class="mb-2">
                         <label class="form-label small fw-bold">Dirección (Calle y Colonia)</label>
                         <input type="text" id="regDireccion" class="form-control" placeholder="Av. Principal #123" required>
@@ -113,7 +99,7 @@
                     <input type="text" id="inputBuscar" class="form-control form-control-lg" placeholder="🔍 Buscar por Número de Cliente o Nombre..." oninput="filtrarClientes()">
                 </div>
 
-                <!-- ENFOQUE INFORMATIVO DE CONTEO DE CLIENTES REGISTRADOS -->
+                <!-- MODIFICACIÓN HTML: ENFOQUE INFORMATIVO DE CONTEO DE CLIENTES REGISTRADOS -->
                 <div class="alert alert-info py-2 px-3 mb-2 d-flex justify-content-between align-items-center shadow-sm">
                     <span class="fw-bold text-dark small">👥 TOTAL CLIENTES REGISTRADOS (EN LISTA):</span>
                     <span class="fw-bold text-primary fs-5" id="lblSumaTotalActiva">0</span>
@@ -303,29 +289,10 @@
         verificarPermisosAcceso(); 
     });
 
-    // DOCUMENTACIÓN JAVASCRIPT: Función reactiva para cambiar el color del input de registro al vuelo
-    function actualizarColorInputRegistro() {
-        const inputNombre = document.getElementById("regNombre");
-        const selectColor = document.getElementById("regColorNombre");
-        if (inputNombre && selectColor) {
-            inputNombre.style.color = selectColor.value;
-        }
-    }
-
-    // DOCUMENTACIÓN JAVASCRIPT: Función reactiva para cambiar el color del input de edición al vuelo
-    function actualizarColorInputEdicion() {
-        const inputNombreEdit = document.getElementById("editNombre");
-        const selectColorEdit = document.getElementById("editColorNombre");
-        if (inputNombreEdit && selectColorEdit) {
-            inputNombreEdit.style.color = selectColorEdit.value;
-        }
-    }
-
     async function registrarCliente(event) {
         event.preventDefault();
         const folio = document.getElementById("regNumero").value;
         const nombre = document.getElementById("regNombre").value;
-        const colorNombre = document.getElementById("regColorNombre").value; 
         const direccion = document.getElementById("regDireccion").value;
         const zona = document.getElementById("regZona").value;
         const diaCobro = document.getElementById("regDiaCobro").value;
@@ -338,7 +305,6 @@
             await addDoc(collection(db, "clientes"), {
                 folio: folio,
                 nombre: nombre,
-                colorNombre: colorNombre, 
                 direccion: direccion,
                 zona: zona,
                 diaCobro: diaCobro,
@@ -350,14 +316,13 @@
             });
             document.getElementById("formNuevoCliente").reset();
             document.getElementById("regCargoAtraso").value = "0";
-            document.getElementById("regColorNombre").value = "#000000";
-            document.getElementById("regNombre").style.color = "#000000"; // Resetea el color visual del input
             alert("Cliente guardado con éxito.");
         } catch (error) {
             console.error("Error al registrar cliente: ", error);
         }
     }
 
+    // DOCUMENTACIÓN JAVASCRIPT: Modificación del acumulador para contar registros en lugar de dinero
     function filtrarClientes() {
         const query = document.getElementById("inputBuscar").value.toLowerCase();
         const container = document.getElementById("listaClientesContainer");
@@ -365,6 +330,7 @@
         if (!container) return;
         container.innerHTML = "";
 
+        // Variable numérica para contar los registros agregados
         let totalClientesListados = 0;
 
         clientesBD.forEach((cliente, index) => {
@@ -373,16 +339,16 @@
                 let totalCargosHistorial = cliente.historialPagos.reduce((sum, p) => sum + p.cargo, 0);
                 let saldoActual = cliente.precio + totalCargosHistorial - totalPagado;
 
+                // CORRECCIÓN: Incrementa en 1 unidad el contador por cada registro válido en la lista
                 totalClientesListados++;
 
                 let zonaAsignada = cliente.zona || 'Local';
                 let diaCobroAsignado = cliente.diaCobro || 'Sin asignar';
-                let colorAsignado = cliente.colorNombre || '#000000';
 
                 let item = `<div class="list-group-item list-group-item-action lista-clientes-item d-flex justify-content-between align-items-center" onclick="seleccionarCliente(${index})">
                     <div>
                         <span class="badge bg-primary me-2">N° ${cliente.folio}</span>
-                        <strong style="color: ${colorAsignado};">${cliente.nombre}</strong>
+                        <strong>${cliente.nombre}</strong>
                         <br><small class="text-muted">${cliente.articulo} (${zonaAsignada} - Cobro: ${diaCobroAsignado})</small>
                     </div>
                     <span class="badge bg-danger">Saldo: ${formatearDinero(saldoActual)}</span>
@@ -391,6 +357,7 @@
             }
         });
 
+        // Inyección del número entero totalizado en el DOM de la aplicación
         const lblSumaTotal = document.getElementById("lblSumaTotalActiva");
         if (lblSumaTotal) {
             lblSumaTotal.innerText = totalClientesListados;
@@ -597,11 +564,9 @@
     function restaurarVistaDatosFijos(cliente) {
         const contenedor = document.getElementById("contenedorDatosCliente");
         let inicialPenalizacion = cliente.cargoAtrasoInicial || 0;
-        let colorAsignado = cliente.colorNombre || '#000000';
-        
         contenedor.innerHTML = `
             <div class="col-md-6">
-                <p class="mb-1"><strong>NOMBRE:</strong> <span id="lblNombre" style="color: ${colorAsignado}; font-weight: bold;">${cliente.nombre}</span></p>
+                <p class="mb-1"><strong>NOMBRE:</strong> <span id="lblNombre">${cliente.nombre}</span></p>
                 <p class="mb-1"><strong>DIRECCIÓN:</strong> <span id="lblDireccion">${cliente.direccion}</span></p>
                 <p class="mb-1"><strong>ZONA:</strong> <span id="lblZona">${cliente.zona || 'Local'}</span></p>
                 <p class="mb-1"><strong>DÍA DE COBRO:</strong> <span>${cliente.diaCobro || 'Sin Asignar'}</span></p>
@@ -623,21 +588,10 @@
             btn.innerText = "💾 Guardar Cambios";
             btn.classList.replace("btn-warning", "btn-primary");
 
-            const colorActual = cliente.colorNombre || '#000000';
             const contenedor = document.getElementById("contenedorDatosCliente");
-            
-            // DOCUMENTACIÓN JAVASCRIPT: Se inyecta la escucha "onchange" y "oninput" al input de edición para responder reactivamente
             contenedor.innerHTML = `
                 <div class="col-md-6">
-                    <div class="mb-2"><strong>NOMBRE:</strong><input type="text" id="editNombre" class="form-control form-control-sm fw-bold" style="color: ${colorActual};" value="${cliente.nombre}" oninput="actualizarColorInputEdicion()"></div>
-                    <div class="mb-2"><strong>COLOR NOMBRE (TIPO):</strong>
-                        <select id="editColorNombre" class="form-select form-select-sm" onchange="actualizarColorInputEdicion()">
-                            <option value="#000000" ${colorActual === '#000000' ? 'selected' : ''}>Negro (Artículo)</option>
-                            <option value="#004085" ${colorActual === '#004085' ? 'selected' : ''}>Azul (Préstamos)</option>
-                            <option value="#198754" ${colorActual === '#198754' ? 'selected' : ''}>Verde (Quincena)</option>
-                            <option value="#dc3545" ${colorActual === '#dc3545' ? 'selected' : ''}>Rojo (Atraso)</option>
-                        </select>
-                    </div>
+                    <div class="mb-2"><strong>NOMBRE:</strong><input type="text" id="editNombre" class="form-control form-control-sm" value="${cliente.nombre}"></div>
                     <div class="mb-2"><strong>DIRECCIÓN:</strong><input type="text" id="editDireccion" class="form-control form-control-sm" value="${cliente.direccion}"></div>
                     <div class="mb-2"><strong>ZONA:</strong>
                         <select id="editZona" class="form-select form-select-sm">
@@ -653,7 +607,6 @@
                 </div>`;
         } else {
             const nombreNue = document.getElementById("editNombre").value;
-            const colorNue = document.getElementById("editColorNombre").value; 
             const direccionNue = document.getElementById("editDireccion").value;
             const zonaNue = document.getElementById("editZona").value;
             const articuloNue = document.getElementById("editArticulo").value;
@@ -664,7 +617,6 @@
                 const clienteRef = doc(db, "clientes", cliente.id);
                 await updateDoc(clienteRef, {
                     nombre: nombreNue,
-                    colorNombre: colorNue,
                     direccion: direccionNue,
                     zona: zonaNue,
                     articulo: articuloNue,
@@ -806,8 +758,6 @@
     window.consultarPagosRealizados = consultarPagosRealizados;
     window.consultarRetrasosPendientes = consultarRetrasosPendientes;
     window.consultarClientesSinPagoEstaSemana = consultarClientesSinPagoEstaSemana;
-    window.actualizarColorInputRegistro = actualizarColorInputRegistro;
-    window.actualizarColorInputEdicion = actualizarColorInputEdicion;
 </script>
 
 </body>
